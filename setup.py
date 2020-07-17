@@ -8,27 +8,17 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
-
 setup_args = generate_distutils_setup(
-    name='ubxtranslator',
-    version='0.1.1',
-    description='A lightweight python library for translating UBX packets',
+    name='decawave_ros',
+    version='0.1.0',
+    description='A ROS package for interfacing with the Decawave TREK1000 UWB modules',
     long_description=readme(),
-    classifiers=[
-        'Development Status :: 3 - Alpha',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-        'Programming Language :: Python :: 3',
-        'Topic :: Communications'
-    ],
-    url='http://github.com/dalymople/ubxtranslator',
-    author='Dalymople',
-    author_email='dalymople@gmail.com',
-    license='GNU GPL v3',
-    packages=[  'ubxtranslator',
-                'ubxtranslator.config'],
+    url='https://github.com/unmannedlab/decawave_ros.git',
+    author='Jacob Hartzer',
+    author_email='JacobHartzer@gmail.com',
+    license='MIT',
+    packages='decawave_ros',
     package_dir={'' : 'src'},
-    test_suite='nose.collector',
-    tests_require=['nose'],
     )
 
 setup(**setup_args)
