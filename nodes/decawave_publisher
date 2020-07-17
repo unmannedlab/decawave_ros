@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import serial
+import rospy
+
+from geometry_msgs.msg import Pose2D, Vector3
+from ubxtranslator.core import Parser
+from ubxtranslator.config.F9P import NAV_CLS, ACK_CLS
+from ubxtranslator.msg import hpposllh, relpos2D
+
+class UBXNode:
+
+    def __init__(self):
+
+        rospy.init_node('UBX')
+
+
+        # Paramters
+        self.port = serial.Serial("/dev/ArduSimple", baudrate=9600, timeout=0.1)
+
+        self.hpposllh_pub  = rospy.Publisher('UBX/hpposllh', hpposllh, queue_size=10)
+        self.relpos2D_pub  = rospy.Publisher('UBX/relpos2D', relpos2D, queue_size=10)
+
+        self.hpposllh = hpposllh()
+        self.relpos2D = relpos2D()
+
+    def run(self):
+
+        parser = Parser([ NAV_CLS, ACK_CLS ])
+        rate = rospy.Rate(10) # 10 Hz
+
+        while(not rospy.is_shutdown()):
+            try:
+                msg = parser.receive_from(self.port)
+
+                if msg[1] == "RELPOSNED":
+                    if msg[2][17][7]:   # Is relative position heading valid? 
+                        self.relpos2D.pos.x     = float(msg[2][3])*1e-3
+                        self.relpos2D.pos.y     = float(msg[2][4])*1e-3
+                        self.relpos2D.pos.theta = float(msg[2][7])*1e-5
+
+                        self.relpos2D.err.x     = float(msg[2][12])*1e-4
+                        self.relpos2D.err.y     = float(msg[2][13])*1e-4
+                        self.relpos2D.err.theta = float(msg[2][16])*1e-5
+
+                        self.relpos2D_pub.publish( self.relpos2D )
+
+
+                elif msg[1] == "HPPOSLLH":
+                    if msg[2][3] != 0 and msg[2][4] != 0:
+                        self.hpposllh.llh.lon    = float(msg[2][3])*1e-7 # Longituge
+                        self.hpposllh.llh.lat    = float(msg[2][4])*1e-7 # Latitude
+                        self.hpposllh.llh.height = float(msg[2][5])*1e-3 # Height
+
+                        self.hpposllh.err.lon    = float(msg[2][11])*1e-4
+                        self.hpposllh.err.lat    = float(msg[2][11])*1e-4
+                        self.hpposllh.err.height = float(msg[2][12])*1e-4
+
+                        self.hpposllh_pub.publish( self.hpposllh )
+
+            except (ValueError, IOError) as err:
+                print(err)
+            
+            rate.sleep()
+
+        self.port.close()
+
+
+if __name__ == '__main__':
+    UBX = UBXNode()
+    UBX.run()
