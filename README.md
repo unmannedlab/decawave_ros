@@ -11,4 +11,4 @@ Start the ROS core service<br>
 `roscore`
 
 Launch the publisher<br>
-`roslaunch decawave_ros decawave_publisher`
+`roslaunch decawave_ros decawave_publisher.launch`
