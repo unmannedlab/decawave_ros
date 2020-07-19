@@ -1,5 +1,3 @@
-Header header
-bool anchor_to_tag
-int32 anchor
+int32 anc
 int32 tag
-float64 distance 
+float64 dist 
