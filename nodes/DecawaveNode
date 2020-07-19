@@ -1,14 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import serial
+from decawave_ros import DecaParser
+from decawave_ros.msg import uwb_distance
 
 class DecawaveNode:
     def __init__(self):
-        rospy.init_node('decawave_driver')
+        rospy.init_node('Decawave')
+        self.port = serial.Serial()
+        self.deca_pub = rospy.Publisher('Decawave', uwb_distance, queue_size=10)
+
         try:
-            self.ser = serial.Serial(
-                port        = rospy.get_param('~port','/dev/ttyACM0s'),
+            self.port = serial.Serial(
+                port        = rospy.get_param('~port','/dev/ttyACM0'),
                 baudrate    = rospy.get_param('~baud',9600),
                 timeout     = 10
             )
@@ -16,16 +21,47 @@ class DecawaveNode:
             print("Serial Port Connection Failure")
 
     def run(self):
-        try:
-            while(not rospy.is_shutdown()):
-                data = self.ser.readline().split()
-                if (data[0] == 'mc' and int(data[1],16) & 0x01):
-                    uwbID = str(data[9][1])
-                    dist = int(data[2],16)/1000.0
-                    print("Tag: " + uwbID + "    Range: " + str(dist))
 
-        except serial.SerialException:
-            self.ser.close()
+        parser = DecaParser(self.port)
+        uwb_msg = uwb_distance()
+
+        while( not rospy.is_shutdown() ):
+            try:
+                msg = parser.receive()
+                if(msg):
+                    if(not msg.r0 == 0):
+                        uwb_msg.anc = 0
+                        uwb_msg.tag = msg.tag
+                        uwb_msg.dist = msg.r0
+                        self.deca_pub.publish(uwb_msg)
+                        
+                    if(not msg.r1 == 0):
+                        uwb_msg.anc = 1
+                        uwb_msg.tag = msg.tag
+                        uwb_msg.dist = msg.r1
+                        self.deca_pub.publish(uwb_msg)
+                        
+                    if(not msg.r2 == 0):
+                        uwb_msg.anc = 2
+                        uwb_msg.tag = msg.tag
+                        uwb_msg.dist = msg.r2
+                        self.deca_pub.publish(uwb_msg)
+                        
+                    if(not msg.r3 == 0):
+                        uwb_msg.anc = 3
+                        uwb_msg.tag = msg.tag
+                        uwb_msg.dist = msg.r3
+                        self.deca_pub.publish(uwb_msg)
+
+
+            except (ValueError, IOError) as err:
+                print(err)
+
+
+        if(self.port.isOpen() == True):
+            self.port.close()
+
+
 
         
 if __name__ == "__main__":

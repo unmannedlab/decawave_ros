@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>decawave_ros</name>
-  <version>1.0.0</version>
+  <version>0.1.0</version>
   <description>The decawave_ros package</description>
 
   <maintainer email="JacobHartzer@gmail.com">Jacob Hartzer</maintainer>

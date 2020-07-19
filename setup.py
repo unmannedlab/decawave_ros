@@ -9,15 +9,7 @@ def readme():
         return f.read()
 
 setup_args = generate_distutils_setup(
-    name='decawave_ros',
-    version='0.1.0',
-    description='A ROS package for interfacing with the Decawave TREK1000 UWB modules',
-    long_description=readme(),
-    url='https://github.com/unmannedlab/decawave_ros.git',
-    author='Jacob Hartzer',
-    author_email='JacobHartzer@gmail.com',
-    license='MIT',
-    packages='decawave_ros',
+    packages=['decawave_ros'],
     package_dir={'' : 'src'},
     )
 
