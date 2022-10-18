@@ -8,27 +8,35 @@ from decawave_ros.msg import uwb_distance
 class DecawaveNode:
     def __init__(self):
         rospy.init_node('Decawave')
+        
         self.port = serial.Serial()
         self.deca_pub = rospy.Publisher('Decawave', uwb_distance, queue_size=10)
 
         try:
             self.port = serial.Serial(
-                port        = rospy.get_param('~port','/dev/ttyACM0'),
-                baudrate    = rospy.get_param('~baud',9600),
-                timeout     = 10
+                port        = '/dev/ttyACM0',
+                baudrate    = 9600,
+                timeout     = 80
             )
+            
         except serial.SerialException:
             print("Serial Port Connection Failure")
-
+        
+        #print("initialised")
+        
+        
     def run(self):
 
         parser = DecaParser(self.port)
         uwb_msg = uwb_distance()
 
         while( not rospy.is_shutdown() ):
+            
             try:
                 msg = parser.receive()
+                #print(msg)
                 if(msg):
+                    #print("received msg")
                     if(not msg.r0 == 0):
                         uwb_msg.anc = 0
                         uwb_msg.tag = msg.tag
