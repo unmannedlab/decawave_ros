@@ -1,0 +1,117 @@
+#!/usr/bin/env python2
+
+import rospy
+from decawave_ros.msg import uwb_distance, anchor,tag
+import numpy as np
+class LocationNode:
+    def __init__(self):
+        # initialize the subscriber node now.
+        self.deca_sub = rospy.Subscriber("/Decawave", uwb_distance, self.callback)
+        self.tag_pub = rospy.Publisher('Location', tag, queue_size=10)
+        
+        print("Initializing the instance!")
+
+    def trilaterate(self, anchor_x, anchor_y, anchor1, anchor2, anchor3):
+            """
+            @brief: Trilaterate Tag location
+            @param: anchor_x - List of anchor coordinates along the X-axis
+                    anchor_y - List of anchor coordinates along the Y-axis
+                    anchor1 - Distance to the 1st Anchor
+                    anchor2 - Distance to the 2nd Anchor
+                    anchor3 - Distance to the 3rd Anchor
+            @ret:   tag_coordinates - Tag Coordinates in a numpy array.
+            """
+            r1_sq = pow(anchor1,2)
+            r2_sq = pow(anchor2,2)
+            r3_sq = pow(anchor3,2)
+
+            # Solve a linear matrix equation where x,y is the Tag coordinate:
+            # Ax + By = C
+            # Dx + Ey = F
+            A = (-2*anchor_x[0]) + (2*anchor_x[1])
+            B = (-2*anchor_y[0]) + (2*anchor_y[1])
+            C = r1_sq - r2_sq - pow(anchor_x[0],2) + pow(anchor_x[1],2) - pow(anchor_y[0],2) + pow(anchor_y[1],2) 
+            D = (-2*anchor_x[1]) + (2*anchor_x[2])
+            E = (-2*anchor_y[1]) + (2*anchor_y[2])
+            F = r2_sq - r3_sq - pow(anchor_x[1],2) + pow(anchor_x[2],2) - pow(anchor_y[1],2) + pow(anchor_y[2],2) 
+
+            a = np.array([[A, B], [D, E]])
+            b = np.array([C, F])
+            tag_coordinates = np.linalg.solve(a, b)
+            # print("Tag Coordinate:", tag_coordinates)
+            return tag_coordinates
+
+    def callback(self, data):
+        
+        # print the actual message in its raw format
+        rospy.loginfo("Here's what was subscribed: %s", data)
+        
+        # otherwise simply print a convenient message on the terminal
+        print('Data from /Decawave received')
+
+        anchor_x = [0,2.45,0.44] #anchor coordinates in meters
+        anchor_y = [0,0,1.93]
+
+        if (data.tag == 0 and len(data.dist_array)==3):
+            #print(len(msg.dist_array))
+            if data.dist_array[0].anc==0:
+                dist_a0t0 = data.dist_array[0].dist
+            if data.dist_array[1].anc==1:
+                dist_a1t0 = data.dist_array[1].dist
+            if data.dist_array[2].anc==2:
+                dist_a2t0 = data.dist_array[2].dist
+            pos_x_coors = []
+            pos_y_coors = []
+            tag_loc = self.trilaterate(anchor_x, anchor_y, dist_a0t0,dist_a1t0,dist_a2t0)
+            pos_x_coors = tag_loc[0]
+            pos_y_coors = tag_loc[1]
+            tag_msg = tag()
+            tag_msg.pos_x = pos_x_coors
+            tag_msg.pos_y = pos_y_coors
+            tag_msg.tag = data.tag
+            tag_msg.header.stamp = rospy.Time.now()
+            self.tag_pub.publish(tag_msg)
+        
+        if (data.tag == 1 and len(data.dist_array)==3):
+            #print(len(msg.dist_array))
+            if data.dist_array[0].anc==0:
+                dist_a0t1 = data.dist_array[0].dist
+            if data.dist_array[1].anc==1:
+                dist_a1t1 = data.dist_array[1].dist
+            if data.dist_array[2].anc==2:
+                dist_a2t1 = data.dist_array[2].dist
+            pos_x_coors = []
+            pos_y_coors = []
+            tag_loc = self.trilaterate(anchor_x, anchor_y, dist_a0t1,dist_a1t1,dist_a2t1)
+            pos_x_coors = tag_loc[0]
+            pos_y_coors = tag_loc[1]
+            tag_msg = tag()
+            tag_msg.pos_x = pos_x_coors
+            tag_msg.pos_y = pos_y_coors
+            tag_msg.tag = data.tag
+            tag_msg.header.stamp = rospy.Time.now()
+            self.tag_pub.publish(tag_msg)
+
+def main():
+      
+    # create a subscriber instance
+    sub = LocationNode()
+    
+    # follow it up with a no-brainer sequence check
+    print('Currently in the main function...')
+    
+    # initialize a node by the name 'listener'.
+    # you may choose to name it however you like,
+    # since you don't have to use it ahead
+    rospy.init_node('Location', anonymous=True)
+    # spin() simply keeps python from
+    # exiting until this node is stopped
+    rospy.spin()
+  
+if __name__ == '__main__':
+      
+    # you could name this function
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass
