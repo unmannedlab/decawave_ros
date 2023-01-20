@@ -1,3 +1,3 @@
-int32 anc
+std_msgs/Header header 
 int32 tag
-float64 dist 
+anchor[] dist_array 
